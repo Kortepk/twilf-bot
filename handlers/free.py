@@ -1,13 +1,11 @@
 import datetime
-
 from global_data import MAIN_STATE, DATE_INPUT_STATE
-
 from utils.keyboards import get_date_keyboard, get_cancel_keyboard
-
 from telegram import Update
 from telegram.ext import ContextTypes
-
 from handlers.book import DatabaseManager
+from utils.visualizer import BookingVisualizer
+from io import BytesIO
 
 async def handler(update, context):
 
@@ -26,7 +24,7 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     print(query.data)
 
-    try:
+    try:  
         if func_name == "free_today":
             date = datetime.date.today()
         elif func_name == "free_tomorrow":
@@ -43,12 +41,38 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         db = DatabaseManager()
         booked_tables = db.get_booked_tables_for_day(datetime.date.today())
 
+        # Генерируем изображение
+        visualizer = BookingVisualizer()
+        title = f"Бронирования на {date.strftime('%d.%m.%Y')}"
+        image = visualizer.generate_booking_image(title, booked_tables)
+        
+        # Отправляем изображение
+        bio = BytesIO()
+        bio.name = 'booking.png'
+        image.save(bio, 'PNG')
+        bio.seek(0)
+        
+       # Получаем сообщение в зависимости от типа запроса
+        if update.callback_query:
+            query = update.callback_query
+            await query.answer()
+            message = query.message
+        else:
+            message = update.message
+
+        # Отправляем фото как новое сообщение
+        await message.reply_photo(photo=bio)
+
         await query.edit_message_text(
             f"Вы выбрали: {date.strftime('%d.%m.%Y')}\n"
             f"Занятые столики: {booked_tables}"  
         )
+        
     except Exception as e:
-        await query.edit_message_text(f"Ошибка: {str(e)}")
+        if update.callback_query:
+            await update.callback_query.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+        elif update.message:
+            await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
 
     return MAIN_STATE  # Возвращаем в основное состояние
 
