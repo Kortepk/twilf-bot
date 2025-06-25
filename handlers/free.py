@@ -1,45 +1,67 @@
 import sqlite3
 import datetime
-from config import TABLES, RESTAURANT_OPEN_TIME, RESTAURANT_CLOSE_TIME
+from config import *
+from utils.keyboards import get_date_keyboard
+
+from telegram import Update
+from telegram.ext import ContextTypes
 
 async def handler(update, context):
+
+    await update.message.reply_text(
+        "📅 Выберите дату для просмотра свободных столиков:",
+        reply_markup=get_date_keyboard()
+    )
+
+    return MAIN_STATE
+
+async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  
+    
+    func_name = query.data
+
+    print(query.data)
+
     try:
-        date_str = context.args[0]
-        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        if func_name == "free_today":
+            date = datetime.date.today()
+        elif func_name == "free_tomorrow":
+            date = datetime.date.today() + datetime.timedelta(days=1)
+        elif func_name == "free_day_after":
+            date = datetime.date.today() + datetime.timedelta(days=2)
+        elif func_name == "free_custom":
+            await query.edit_message_text("Введите дату в формате ДД.ММ.ГГГГ")
+            return DATE_INPUT_STATE
+            
+        await query.edit_message_text(
+            f"Вы выбрали: {date.strftime('%d.%m.%Y')}\n"
+            f"Свободные столики: ..."  # TODO: проверить БД
+        )
+    except Exception as e:
+        await query.edit_message_text(f"Ошибка: {str(e)}")
 
-        conn = sqlite3.connect('restaurant.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT table_number, booking_time, booking_end_time FROM bookings WHERE DATE(booking_time) = ?', (date,))
-        bookings = cursor.fetchall()
-        conn.close()
+    return MAIN_STATE  # Возвращаем в основное состояние
 
-        slots = [
-            datetime.datetime.combine(date, datetime.time(h, m))
-            for h in range(RESTAURANT_OPEN_TIME, RESTAURANT_CLOSE_TIME)
-            for m in range(0, 60, 10)
-        ]
+async def handle_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка ручного ввода даты"""
+    try:
+        day, month, year = map(int, update.message.text.split('.'))
+        date = datetime.date(year, month, day)
+        
+        # Проверка что дата не в прошлом
+        if date < datetime.date.today():
+            await update.message.reply_text("❌ Нельзя выбрать прошедшую дату. Попробуйте снова:")
+            return DATE_INPUT_STATE
+            
+        await update.message.reply_text(f"Выбрана дата: {date.strftime('%d.%m.%Y')}")
+        return MAIN_STATE  # Возвращаем в основное состояние
+        
+    except (ValueError, IndexError):
+        await update.message.reply_text("❌ Неверный формат. Введите дату как ДД.ММ.ГГГГ:")
+        return DATE_INPUT_STATE
 
-        availability = {}
-        for slot in slots:
-            free = []
-            for table in TABLES:
-                busy = any(
-                    int(b[0]) == table and
-                    datetime.datetime.strptime(b[1], "%Y-%m-%d %H:%M") <= slot <
-                    datetime.datetime.strptime(b[2], "%Y-%m-%d %H:%M")
-                    for b in bookings
-                )
-                if not busy:
-                    free.append(table)
-            if free:
-                availability[slot.strftime("%H:%M")] = free
-
-        if availability:
-            msg = f'📅 *Свободные столики на {date_str}:*\n\n'
-            for time, tables in availability.items():
-                msg += f'🕒 {time}: {tables}\n'
-            await update.message.reply_text(msg, parse_mode='Markdown')
-        else:
-            await update.message.reply_text("😔 Нет свободных столиков на этот день.")
-    except Exception:
-        await update.message.reply_text('⚠️ Используйте: /free <дата YYYY-MM-DD>')
+async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Отмена ввода даты"""
+    await update.message.reply_text("❌ Ввод даты отменён")
+    return MAIN_STATE
