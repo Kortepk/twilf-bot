@@ -17,7 +17,7 @@ async def handle_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return await handle_date_choice(update, func_name)
         
         elif func_name.startswith("book_"):
-            return await handle_book_date(update, func_name)
+            return await handle_book_date(update, context, func_name)
             
     except Exception as e:
         error_msg = f"⚠️ Ошибка: {str(e)}"

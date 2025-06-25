@@ -5,7 +5,7 @@ from utils.time_check import is_within_working_hours
 from typing import List, Tuple, Optional
 from telegram import Update
 from telegram.ext import ContextTypes
-from utils.keyboards import get_date_book_keyboard, get_tables_keyboard
+from utils.keyboards import get_date_book_keyboard, get_tables_keyboard, get_time_keyboard, get_book_confirm_keyboard
 from global_data import MAIN_STATE, GLOBAL_USER_DATE
 
 # Константы
@@ -201,10 +201,12 @@ async def start(update, context):
     )
 
 
-async def handle_book_date(update: Update, func_name):
-    global GLOBAL_USER_DATE
+async def handle_book_date(update: Update, context: ContextTypes.DEFAULT_TYPE, func_name):
+    global GLOBAL_USER_DATE, GLOBAL_TABLE_NUMBER, GLOBAL_USER_TIME
     query = update.callback_query if update.callback_query else None
     message = query.message if query else update.message
+    user_id = update.effective_user.id
+    username = update.effective_user.username or "Без имени"
 
     try:
         if func_name == "book_today":
@@ -213,15 +215,77 @@ async def handle_book_date(update: Update, func_name):
             GLOBAL_USER_DATE = datetime.date.today() + datetime.timedelta(days=1)
         elif func_name == "book_day_after":
             GLOBAL_USER_DATE = datetime.date.today() + datetime.timedelta(days=2)
+        elif func_name.startswith("book_time_"):
+            time_str = query.data.replace("book_time_", "")
+            GLOBAL_USER_TIME = time_str
+            await query.edit_message_text(
+                f"🔄 Бронируем стол {GLOBAL_TABLE_NUMBER}\n"
+                f"📅 На {GLOBAL_USER_DATE.strftime('%d.%m.%Y')}\n"
+                f"⏰ В {time_str}\n\n"
+                "Подтвердите бронирование:",
+                reply_markup=get_book_confirm_keyboard()
+            )
+
+            return MAIN_STATE
+        elif func_name == "book_confirm":
+            table_number = GLOBAL_TABLE_NUMBER
+            
+            # Извлекаем время из предыдущего сообщения
+            time_str = GLOBAL_USER_TIME
+            booking_start_str = f"{GLOBAL_USER_DATE.strftime('%Y-%m-%d')} {time_str}"
+            
+            # Стандартная продолжительность брони (2 часа)
+            hours = 2
+            
+            # Проверяем и добавляем бронирование
+            db = DatabaseManager()
+            if db.add_booking(user_id, username, table_number, booking_start_str, hours):
+                booking_end = datetime.datetime.strptime(booking_start_str, "%Y-%m-%d %H:%M") + datetime.timedelta(hours=hours)
+                
+                # Удаляем предыдущее сообщение с кнопками
+                await query.delete_message()
+                
+                # Отправляем подтверждение
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f'✅ Столик {table_number} забронирован!\n'
+                         f'📅 Дата: {GLOBAL_USER_DATE.strftime("%d.%m.%Y")}\n'
+                         f'🕒 Время: {time_str} – {booking_end.strftime("%H:%M")}\n'
+                         f'👤 Для: @{username}'
+                )
+            else:
+                await query.edit_message_text(
+                    '❌ Этот столик уже занят на выбранное время.\n'
+                    'Попробуйте выбрать другое время или столик.'
+                )
+            return MAIN_STATE
+
+        elif func_name == "book_cancel":
+                        # Удаляем предыдущее сообщение с кнопками
+            await query.delete_message()
+            
+            # Отправляем сообщение об отмене
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="❌ Бронирование отменено"
+            )
+            
+            # Сбрасываем глобальные переменные
+            GLOBAL_USER_DATE = None
+            GLOBAL_TABLE_NUMBER = None
+            GLOBAL_USER_TIME = None
+
+            return MAIN_STATE
         else:
             val = query.data.split('_')[1]
 
             if val.isdigit():
                 GLOBAL_TABLE_NUMBER = int(val)
                 await query.edit_message_text(
-                    f"✅ Вы выбрали: Стол {GLOBAL_TABLE_NUMBER}\n"
-                    f"📅 Дата: {GLOBAL_USER_DATE.strftime('%d.%m.%Y')}\n"
-                    "⏰ Теперь введите время бронирования в формате ЧЧ:ММ"
+                    f"✅ Стол {GLOBAL_TABLE_NUMBER}\n"
+                    f"📅 {GLOBAL_USER_DATE.strftime('%d.%m.%Y')}\n"
+                    "⏰ Выберите время:",
+                    reply_markup=get_time_keyboard()
                 )
             else:
                 await message.reply_text(

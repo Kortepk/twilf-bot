@@ -8,3 +8,5 @@ MAIN_STATE = 1  # Основное состояние (можно использ
 DATE_INPUT_STATE = 2  # Состояние ввода даты (только дата или отмена)
 
 GLOBAL_USER_DATE = datetime.date.today()
+GLOBAL_TABLE_NUMBER = 1
+GLOBAL_USER_TIME = ""
