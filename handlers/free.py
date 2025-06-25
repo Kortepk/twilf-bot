@@ -7,6 +7,8 @@ from utils.keyboards import get_date_keyboard, get_cancel_keyboard
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from handlers.book import DatabaseManager
+
 async def handler(update, context):
 
     await update.message.reply_text(
@@ -37,10 +39,13 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 reply_markup=get_cancel_keyboard()
             ) 
             return DATE_INPUT_STATE
-            
+        
+        db = DatabaseManager()
+        booked_tables = db.get_booked_tables_for_day(datetime.date.today())
+
         await query.edit_message_text(
             f"Вы выбрали: {date.strftime('%d.%m.%Y')}\n"
-            f"Свободные столики: ..."  # TODO: проверить БД
+            f"Занятые столики: {booked_tables}"  
         )
     except Exception as e:
         await query.edit_message_text(f"Ошибка: {str(e)}")
