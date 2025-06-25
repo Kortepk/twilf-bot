@@ -24,11 +24,11 @@ def register_handlers(app):
             ],
             DATE_INPUT_STATE: [
                 # Разрешаем только ввод даты или отмену
-                MessageHandler(filters.Regex(r'^\d{2}\.\d{2}\.\d{4}$'), handle_manual_date),
-                CommandHandler('cancel', cancel_handler)
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_manual_date),
+                CallbackQueryHandler(free.cancel_handler)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel_handler)],
+        fallbacks=[CommandHandler('cancel', free.cancel_handler)],
         per_chat=True,
         per_user=True
     )

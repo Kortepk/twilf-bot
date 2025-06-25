@@ -1,7 +1,7 @@
 import sqlite3
 import datetime
 from config import *
-from utils.keyboards import get_date_keyboard
+from utils.keyboards import get_date_keyboard, get_cancel_keyboard
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -31,7 +31,10 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         elif func_name == "free_day_after":
             date = datetime.date.today() + datetime.timedelta(days=2)
         elif func_name == "free_custom":
-            await query.edit_message_text("Введите дату в формате ДД.ММ.ГГГГ")
+            await query.edit_message_text(
+                "Введите дату в формате ДД.ММ.ГГГГ", 
+                reply_markup=get_cancel_keyboard()
+            ) 
             return DATE_INPUT_STATE
             
         await query.edit_message_text(
@@ -51,17 +54,26 @@ async def handle_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         # Проверка что дата не в прошлом
         if date < datetime.date.today():
-            await update.message.reply_text("❌ Нельзя выбрать прошедшую дату. Попробуйте снова:")
+            await update.message.reply_text("❌ Нельзя выбрать прошедшую дату. Попробуйте снова:",
+                reply_markup=get_cancel_keyboard()
+            )
             return DATE_INPUT_STATE
             
         await update.message.reply_text(f"Выбрана дата: {date.strftime('%d.%m.%Y')}")
         return MAIN_STATE  # Возвращаем в основное состояние
         
     except (ValueError, IndexError):
-        await update.message.reply_text("❌ Неверный формат. Введите дату как ДД.ММ.ГГГГ:")
+        await update.message.reply_text("❌ Неверный формат. Введите дату как ДД.ММ.ГГГГ:",
+            reply_markup=get_cancel_keyboard()
+        )
         return DATE_INPUT_STATE
 
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена ввода даты"""
-    await update.message.reply_text("❌ Ввод даты отменён")
+    if update.callback_query:  # Если отмена через инлайн-кнопку
+        query = update.callback_query
+        await query.answer()
+        await query.edit_message_text("❌ Ввод даты отменён")
+    elif update.message:  # Если отмена через команду /cancel
+        await update.message.reply_text("❌ Ввод даты отменён")
+    
     return MAIN_STATE

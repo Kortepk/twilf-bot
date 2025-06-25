@@ -27,4 +27,9 @@ def get_date_keyboard():
         ]
     ])
     
-
+def get_cancel_keyboard():
+    return InlineKeyboardMarkup([
+        [  
+            InlineKeyboardButton("❌ Отмена", callback_data="cancel_input")
+        ]
+    ])
