@@ -1,9 +1,8 @@
 from telegram.ext import CommandHandler, MessageHandler, filters, ConversationHandler, CallbackQueryHandler
 from handlers import start, book, cancel, view, mybookings, free, text_routes
-
 from handlers.free import *
-
 from global_data import MAIN_STATE, DATE_INPUT_STATE
+from handlers.handle_routes import handle_keyboard
 
 def register_handlers(app):
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_routes.fallback))
@@ -19,7 +18,7 @@ def register_handlers(app):
                 CommandHandler("view", view.handler),
                 CommandHandler("mybookings", mybookings.handler),
                 CommandHandler("free", free.handler),
-                CallbackQueryHandler(handle_date_choice),
+                CallbackQueryHandler(handle_keyboard),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, text_routes.fallback)
             ],
             DATE_INPUT_STATE: [

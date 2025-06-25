@@ -16,15 +16,11 @@ async def handler(update, context):
 
     return MAIN_STATE
 
-async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()  
-    
-    func_name = query.data
+async def handle_date_choice(update: Update, func_name):
+    query = update.callback_query if update.callback_query else None
+    message = query.message if query else update.message
 
-    print(query.data)
-
-    try:  
+    try:
         if func_name == "free_today":
             date = datetime.date.today()
         elif func_name == "free_tomorrow":
@@ -37,6 +33,9 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 reply_markup=get_cancel_keyboard()
             ) 
             return DATE_INPUT_STATE
+        else:
+            await message.reply_text("❌ Неизвестная команда")
+            return MAIN_STATE
         
         db = DatabaseManager()
         booked_tables = db.get_booked_tables_for_day(date)
@@ -51,29 +50,21 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         bio.name = 'booking.png'
         image.save(bio, 'PNG')
         bio.seek(0)
-        
-       # Получаем сообщение в зависимости от типа запроса
-        if update.callback_query:
-            query = update.callback_query
-            await query.answer()
-            message = query.message
-        else:
-            message = update.message
 
-        # Отправляем фото как новое сообщение
+        # Отправляем фото
         await message.reply_photo(photo=bio)
 
-        await query.edit_message_text(
-            f"Вы выбрали: {date.strftime('%d.%m.%Y')}"
-        )
+        # Редактируем оригинальное сообщение (только если это был callback)
+        if query:
+            await query.edit_message_text(f"Вы выбрали: {date.strftime('%d.%m.%Y')}")
+
+        return MAIN_STATE
 
     except Exception as e:
-        if update.callback_query:
-            await update.callback_query.message.reply_text(f"⚠️ Ошибка: {str(e)}")
-        elif update.message:
-            await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+        print(f"Ошибка в handle_date_choice: {e}")
+        await message.reply_text("⚠️ Произошла ошибка при обработке запроса")
+        return MAIN_STATE
 
-    return MAIN_STATE  # Возвращаем в основное состояние
 
 async def handle_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка ручного ввода даты"""

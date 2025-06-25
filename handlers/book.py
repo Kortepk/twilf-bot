@@ -3,10 +3,9 @@ import datetime
 from global_data import TABLES
 from utils.time_check import is_within_working_hours
 from typing import List, Tuple, Optional
-
 from telegram import Update
 from telegram.ext import ContextTypes
-
+from utils.keyboards import get_date_book_keyboard
 # Константы
 DATABASE_NAME = 'data/restaurant.db'
 
@@ -195,4 +194,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Booking error: {e}")
 
 async def start(update, context):
-    await update.message.reply_text("✏️ Введите команду: /book <столик> <дата> <время> <часы>")
+    await update.message.reply_text("✏️ Выберите дату для бронирования:",
+        reply_markup=get_date_book_keyboard()
+    )
+                                    
