@@ -1,6 +1,7 @@
-import sqlite3
 import datetime
-from config import *
+
+from global_data import MAIN_STATE, DATE_INPUT_STATE
+
 from utils.keyboards import get_date_keyboard, get_cancel_keyboard
 
 from telegram import Update

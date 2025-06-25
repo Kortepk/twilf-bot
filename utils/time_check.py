@@ -1,4 +1,4 @@
-from config import RESTAURANT_OPEN_TIME, RESTAURANT_CLOSE_TIME
+from global_data import RESTAURANT_OPEN_TIME, RESTAURANT_CLOSE_TIME
 
 def is_within_working_hours(start_time, end_time):
     return (

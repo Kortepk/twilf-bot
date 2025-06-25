@@ -1,6 +1,6 @@
 import sqlite3
 import datetime
-from config import TABLES
+from global_data import TABLES
 from utils.time_check import is_within_working_hours
 
 

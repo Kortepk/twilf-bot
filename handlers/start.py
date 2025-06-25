@@ -1,6 +1,6 @@
 from utils.keyboards import get_main_keyboard
 
-from config import MAIN_STATE
+from global_data import MAIN_STATE
 
 async def handler(update, context):
     await update.message.reply_text(

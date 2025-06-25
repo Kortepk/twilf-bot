@@ -3,9 +3,9 @@ from handlers import start, book, cancel, view, mybookings, free, text_routes
 
 from handlers.free import *
 
+from global_data import MAIN_STATE, DATE_INPUT_STATE
+
 def register_handlers(app):
-
-
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_routes.fallback))
 
     conv_handler = ConversationHandler(
