@@ -39,7 +39,7 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return DATE_INPUT_STATE
         
         db = DatabaseManager()
-        booked_tables = db.get_booked_tables_for_day(datetime.date.today())
+        booked_tables = db.get_booked_tables_for_day(date)
 
         # Генерируем изображение
         visualizer = BookingVisualizer()
@@ -64,10 +64,9 @@ async def handle_date_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await message.reply_photo(photo=bio)
 
         await query.edit_message_text(
-            f"Вы выбрали: {date.strftime('%d.%m.%Y')}\n"
-            f"Занятые столики: {booked_tables}"  
+            f"Вы выбрали: {date.strftime('%d.%m.%Y')}"
         )
-        
+
     except Exception as e:
         if update.callback_query:
             await update.callback_query.message.reply_text(f"⚠️ Ошибка: {str(e)}")

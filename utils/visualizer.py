@@ -77,7 +77,7 @@ class BookingVisualizer:
     def _draw_time_column(self, draw, time_slots):
         font = self._get_font(self.column_font_size)
         for i, time in enumerate(time_slots):
-            y = self.header_height + i * self.cell_height + (self.cell_height - 10) // 2
+            y = self.header_height + (i+1) * self.cell_height + (self.cell_height - 10) // 2
             draw.text((10, y), time, font=font, fill=self.text_color)
 
     def _draw_table_headers(self, draw):
@@ -102,7 +102,7 @@ class BookingVisualizer:
             
             for i, slot_time in enumerate(time_slots):
                 slot_time_obj = datetime.datetime.strptime(slot_time, "%H:%M").time()
-                y1 = self.header_height + i * self.cell_height
+                y1 = self.header_height + (i+1) * self.cell_height
                 y2 = y1 + self.cell_height
                 
                 if start_time <= slot_time_obj < end_time:
@@ -111,7 +111,7 @@ class BookingVisualizer:
     def generate_booking_image(self, title: str, bookings: List[Tuple[int, str, str]]) -> Image.Image:
         time_slots = self._get_time_slots()
         image_width = self.time_column_width + len(TABLES) * self.cell_width
-        image_height = self.header_height + len(time_slots) * self.cell_height
+        image_height = self.header_height + (len(time_slots) + 1) * self.cell_height
         
         # Создаем изображение с зеленым фоном
         image = Image.new("RGB", (image_width, image_height), self.background_color)
