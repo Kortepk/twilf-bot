@@ -5,7 +5,9 @@ from utils.time_check import is_within_working_hours
 from typing import List, Tuple, Optional
 from telegram import Update
 from telegram.ext import ContextTypes
-from utils.keyboards import get_date_book_keyboard
+from utils.keyboards import get_date_book_keyboard, get_tables_keyboard
+from global_data import MAIN_STATE, GLOBAL_USER_DATE
+
 # Константы
 DATABASE_NAME = 'data/restaurant.db'
 
@@ -197,4 +199,43 @@ async def start(update, context):
     await update.message.reply_text("✏️ Выберите дату для бронирования:",
         reply_markup=get_date_book_keyboard()
     )
-                                    
+
+
+async def handle_book_date(update: Update, func_name):
+    global GLOBAL_USER_DATE
+    query = update.callback_query if update.callback_query else None
+    message = query.message if query else update.message
+
+    try:
+        if func_name == "book_today":
+            GLOBAL_USER_DATE = datetime.date.today()
+        elif func_name == "book_tomorrow":
+            GLOBAL_USER_DATE = datetime.date.today() + datetime.timedelta(days=1)
+        elif func_name == "book_day_after":
+            GLOBAL_USER_DATE = datetime.date.today() + datetime.timedelta(days=2)
+        else:
+            val = query.data.split('_')[1]
+
+            if val.isdigit():
+                GLOBAL_TABLE_NUMBER = int(val)
+                await query.edit_message_text(
+                    f"✅ Вы выбрали: Стол {GLOBAL_TABLE_NUMBER}\n"
+                    f"📅 Дата: {GLOBAL_USER_DATE.strftime('%d.%m.%Y')}\n"
+                    "⏰ Теперь введите время бронирования в формате ЧЧ:ММ"
+                )
+            else:
+                await message.reply_text(
+                    "🪑Выберите номер столика",
+                    reply_markup=get_tables_keyboard()
+                )   
+            return MAIN_STATE
+
+        await message.reply_text(
+                "🪑Выберите номер столика",
+                reply_markup=get_tables_keyboard()
+            )
+        return MAIN_STATE
+    except Exception as e:
+        print(f"Ошибка в handle_date_choice: {e}")
+        await message.reply_text("⚠️ Произошла ошибка при обработке запроса")
+        return MAIN_STATE

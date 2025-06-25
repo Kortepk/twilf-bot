@@ -2,6 +2,7 @@ from global_data import MAIN_STATE, DATE_INPUT_STATE
 from telegram import Update
 from telegram.ext import ContextTypes
 from handlers.free import handle_date_choice
+from handlers.book import handle_book_date
 
 async def handle_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -14,6 +15,9 @@ async def handle_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if func_name.startswith("free_"):
             # Передаем и update, и context в handle_date_choice
             return await handle_date_choice(update, func_name)
+        
+        elif func_name.startswith("book_"):
+            return await handle_book_date(update, func_name)
             
     except Exception as e:
         error_msg = f"⚠️ Ошибка: {str(e)}"
